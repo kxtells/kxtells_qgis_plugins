@@ -1,4 +1,4 @@
 kxtells_qgis_plugins
 ====================
 
-Qgis plugins Kxtells
+Quantum GIS plugins from kxtells
