@@ -96,42 +96,55 @@ class color_attribute:
         # APP breakpoint
         #pyqtRemoveInputHook();pdb.set_trace()
 
-    def fill_color_attribute_custom_renderer(renderer):
-        reply = QMessageBox.information(self.dlg, 'Message'
-                                       "This layer uses a custom renderer. This is currently not supported by the plugin", QMessageBox.Ok
+    def fill_color_attribute_custom_renderer(self,renderer,layer,attribute):
+        reply = QMessageBox.information(self.dlg, 'Message',""
+                                       "This layer uses a custom renderer. This is currently not supported by the plugin",""
                                        )
 
-    def fill_color_attribute_rendererV2(self,renderer):
+    def fill_color_attribute_singlesymbol_renderer(self,renderer,layer,attribute):
+        """ Set the single color into each of the features """
+        colorstr = str(renderer.symbol().color().name())
+        provider = layer.dataProvider()
+        feat = QgsFeature()
+
+        newattrs = { attribute : QVariant(colorstr)}
+
+        while provider.nextFeature(feat):
+            fid = feat.id()
+            layer.dataProvider().changeAttributeValues({ fid : newattrs })
+        
+    def fill_color_attribute_rendererV2(self,renderer,layer,attribute):
         """ Fill the color attribute using a renderer V2"""
-        rtype = renderer.type()
+        rtype = type(renderer)
         if rtype == QgsSingleSymbolRendererV2:
             print "SingleSymbol"
+            self.fill_color_attribute_singlesymbol_renderer(renderer,layer,attribute)
         elif rtype == QgsCategorizedSymbolRendererV2:
             print "Categorized"
         elif rtype == QgsGraduatedSymbolRendererV2:
             print "Graduated"
         else:
-            self.fill_color_attribute_custom_renderer(renderer)
+            self.fill_color_attribute_custom_renderer(renderer,layer,attribute)
             print "Other"
 
-    def fill_color_attribute_rendererV1(self,renderer):
+    def fill_color_attribute_rendererV1(self,renderer,layer,attribute):
         """ Fill the color attribute using a renderer V1"""
-        reply = QMessageBox.information(self.dlg, 'Message',
-                                       "This layer uses an old simbology renderer. This is currently not supported by the plugin", QMessageBox.Ok
+        reply = QMessageBox.information(self.dlg, 'Message',"",
+                                       "This layer uses an old simbology renderer. This is currently not supported by the plugin",""
                                        )
 
-    def fill_color_attribute(self,layer):
+    def fill_color_attribute(self,layer,attribute):
         print "color_attribute.py::fill_color_attribute"
 
         if layer.isUsingRendererV2():
             # new symbology - subclass of QgsFeatureRendererV2 class
             rendererV2 = layer.rendererV2()
-            self.fill_color_attribute_rendererV2(rendererV2)
+            self.fill_color_attribute_rendererV2(rendererV2,layer,attribute)
 
         else:
             # old symbology - subclass of QgsRenderer class
             renderer = layer.renderer()
-            self.fill_color_attribute_rendererV1(renderer)
+            self.fill_color_attribute_rendererV1(renderer,layer,attribute)
 
 
     ##################################################################
@@ -147,13 +160,15 @@ class color_attribute:
         attributesbox = self.dlg.ui.colorBox
         selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
         
+        if selected_layer == None: return
         attributesbox.clear()
 
         provider = selected_layer.dataProvider()
         columns = provider.fields()
         
+
         for key,value in columns.items():
-            attributesbox.addItem(value.name(),QVariant(value))
+            attributesbox.addItem(value.name(),QVariant(key))
 
     ##################################################################
     #
@@ -165,6 +180,9 @@ class color_attribute:
     def run(self):
         layercombobox = self.dlg.ui.layerBox
         attributesbox = self.dlg.ui.colorBox
+
+        layercombobox.clear()
+        attributesbox.clear()
 
         # APP breakpoint
         #pyqtRemoveInputHook()
@@ -183,5 +201,6 @@ class color_attribute:
         if result == 1:
             print "ok pressed: Run!"
             selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
-            self.fill_color_attribute(selected_layer)
+            selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
+            self.fill_color_attribute(selected_layer,selected_attribute)
 
