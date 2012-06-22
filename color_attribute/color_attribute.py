@@ -33,6 +33,14 @@ import pdb
 
 class color_attribute:
 
+
+    ##################################################################
+    #
+    #
+    # Initializations and plugin load/unload functions
+    #
+    #
+    ##################################################################
     def __init__(self, iface):
         # Save reference to the QGIS interface
         self.iface = iface
@@ -75,30 +83,86 @@ class color_attribute:
         self.iface.removePluginMenu(u"&Color_to_attribute",self.action)
         self.iface.removeToolBarIcon(self.action)
 
+    ##################################################################
+    #
+    #
+    # Plugin functions dealing with the colors of the renderers
+    #
+    #
+    ##################################################################
+
     def check_and_create_attribute(self,layer):
         print "color_attribute.py::check_and_create_attribute"
         # APP breakpoint
         #pyqtRemoveInputHook();pdb.set_trace()
 
+    def fill_color_attribute_custom_renderer(renderer):
+        reply = QMessageBox.information(self.dlg, 'Message'
+                                       "This layer uses a custom renderer. This is currently not supported by the plugin", QMessageBox.Ok
+                                       )
+
+    def fill_color_attribute_rendererV2(self,renderer):
+        """ Fill the color attribute using a renderer V2"""
+        rtype = renderer.type()
+        if rtype == QgsSingleSymbolRendererV2:
+            print "SingleSymbol"
+        elif rtype == QgsCategorizedSymbolRendererV2:
+            print "Categorized"
+        elif rtype == QgsGraduatedSymbolRendererV2:
+            print "Graduated"
+        else:
+            self.fill_color_attribute_custom_renderer(renderer)
+            print "Other"
+
+    def fill_color_attribute_rendererV1(self,renderer):
+        """ Fill the color attribute using a renderer V1"""
+        reply = QMessageBox.information(self.dlg, 'Message',
+                                       "This layer uses an old simbology renderer. This is currently not supported by the plugin", QMessageBox.Ok
+                                       )
+
     def fill_color_attribute(self,layer):
         print "color_attribute.py::fill_color_attribute"
 
+        if layer.isUsingRendererV2():
+            # new symbology - subclass of QgsFeatureRendererV2 class
+            rendererV2 = layer.rendererV2()
+            self.fill_color_attribute_rendererV2(rendererV2)
+
+        else:
+            # old symbology - subclass of QgsRenderer class
+            renderer = layer.renderer()
+            self.fill_color_attribute_rendererV1(renderer)
+
+
+    ##################################################################
+    #
+    #
+    # GUI data fillers
+    #
+    #
+    ##################################################################
     def on_layerCombo_currentIndexChanged(self,g):
-        print "color_attribute.py::CurrentIndexChanged ", g
+        """ Fill the attributes combo box with the current layer attributes """
         layercombobox = self.dlg.ui.layerBox
         attributesbox = self.dlg.ui.colorBox
+        selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
+        
         attributesbox.clear()
 
-        selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
         provider = selected_layer.dataProvider()
         columns = provider.fields()
         
         for key,value in columns.items():
             attributesbox.addItem(value.name(),QVariant(value))
 
-    # run method that performs all the real work
+    ##################################################################
+    #
+    #
+    # MAIN Method
+    #
+    #
+    ##################################################################
     def run(self):
-        print "color_attribute.py::run"
         layercombobox = self.dlg.ui.layerBox
         attributesbox = self.dlg.ui.colorBox
 
@@ -118,7 +182,6 @@ class color_attribute:
         # See if OK was pressed
         if result == 1:
             print "ok pressed: Run!"
-            selected_layer = layercombobox.itemData(layercombobox.currentIndex())
-            self.check_and_create_attribute(selected_layer)
+            selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
             self.fill_color_attribute(selected_layer)
 
