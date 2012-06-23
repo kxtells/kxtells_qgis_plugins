@@ -32,7 +32,9 @@ from color_attributedialog import color_attributeDialog
 import pdb
 
 class color_attribute:
-
+    renderer = None
+    layer = None
+    attribute = None
 
     ##################################################################
     #
@@ -96,13 +98,15 @@ class color_attribute:
         # APP breakpoint
         #pyqtRemoveInputHook();pdb.set_trace()
 
-    def fill_color_attribute_custom_renderer(self,renderer,layer,attribute):
+    def fill_color_attribute_custom_renderer(self,renderer):
         reply = QMessageBox.information(self.dlg, 'Message',""
                                        "This layer uses a custom renderer. This is currently not supported by the plugin",""
                                        )
 
-    def fill_color_attribute_singlesymbol_renderer(self,renderer,layer,attribute):
+    def fill_color_attribute_singlesymbol_renderer(self,renderer):
         """ Set the single color into each of the features """
+        layer = self.layer
+        attribute = self.attribute
         colorstr = str(renderer.symbol().color().name())
         provider = layer.dataProvider()
         feat = QgsFeature()
@@ -111,40 +115,67 @@ class color_attribute:
 
         while provider.nextFeature(feat):
             fid = feat.id()
-            layer.dataProvider().changeAttributeValues({ fid : newattrs })
+            provider.changeAttributeValues({ fid : newattrs })
+    
+    def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
+        """ Set the color with a categorized symbol renderer """
+        layer = self.layer
+        attribute = self.attribute
+        provider = layer.dataProvider()
+        attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
+        feat = QgsFeature()
+        vals = []
+        colors = []
+
+        for cat in renderer.categories():
+            vals.append(cat.value().toString());
+            colors.append(cat.symbol().color().name())
         
-    def fill_color_attribute_rendererV2(self,renderer,layer,attribute):
+
+        while provider.nextFeature(feat):
+            fid = feat.id()
+            attribute_map = feat.attributeMap()
+            catindex = renderer.categoryIndexForValue(attribute_map[attrvalindex].toString())
+            
+            if catindex != -1: colorval = colors[catindex]
+            else: colorval = "NoColor"
+
+            newattrs = { attribute : QVariant(colorval)}
+            provider.changeAttributeValues({ fid : newattrs })
+        
+    def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""
+
+        renderer = self.renderer
         rtype = type(renderer)
         if rtype == QgsSingleSymbolRendererV2:
-            print "SingleSymbol"
-            self.fill_color_attribute_singlesymbol_renderer(renderer,layer,attribute)
+            self.fill_color_attribute_singlesymbol_renderer(renderer)
         elif rtype == QgsCategorizedSymbolRendererV2:
             print "Categorized"
+            self.fill_color_attribute_categorizedsymbol_renderer(renderer)
         elif rtype == QgsGraduatedSymbolRendererV2:
             print "Graduated"
         else:
-            self.fill_color_attribute_custom_renderer(renderer,layer,attribute)
+            self.fill_color_attribute_custom_renderer(renderer)
             print "Other"
 
-    def fill_color_attribute_rendererV1(self,renderer,layer,attribute):
+    def fill_color_attribute_rendererV1(self):
         """ Fill the color attribute using a renderer V1"""
         reply = QMessageBox.information(self.dlg, 'Message',"",
                                        "This layer uses an old simbology renderer. This is currently not supported by the plugin",""
                                        )
 
-    def fill_color_attribute(self,layer,attribute):
+    def fill_color_attribute(self):
         print "color_attribute.py::fill_color_attribute"
-
+        layer = self.layer
+        
         if layer.isUsingRendererV2():
-            # new symbology - subclass of QgsFeatureRendererV2 class
-            rendererV2 = layer.rendererV2()
-            self.fill_color_attribute_rendererV2(rendererV2,layer,attribute)
+            self.renderer = layer.rendererV2()
+            self.fill_color_attribute_rendererV2()
 
         else:
-            # old symbology - subclass of QgsRenderer class
-            renderer = layer.renderer()
-            self.fill_color_attribute_rendererV1(renderer,layer,attribute)
+            self.renderer = layer.renderer()
+            self.fill_color_attribute_rendererV1()
 
 
     ##################################################################
@@ -199,8 +230,12 @@ class color_attribute:
         result = self.dlg.exec_()
         # See if OK was pressed
         if result == 1:
-            print "ok pressed: Run!"
             selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
             selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
-            self.fill_color_attribute(selected_layer,selected_attribute)
+            
+            self.attribute = selected_attribute
+            self.layer = selected_layer
+            self.layer.setReadOnly(False)
+            
+            self.fill_color_attribute()
 
