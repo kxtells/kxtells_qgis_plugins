@@ -99,15 +99,14 @@ class color_attribute:
 
         try:
             caps = layer.dataProvider().capabilities()
+            
             if caps & QgsVectorDataProvider.AddAttributes:
                 res = layer.dataProvider().addAttributes( [ QgsField(newattrtext, QVariant.String) ] )
                 layer.updateFieldMap()
                 newattrindex = layer.dataProvider().fieldNameIndex(newattrtext)
-            else:
-                print "raise Cant add attributes to this layer"
+        
         except:
-            print "raise an error here"
-
+            pass
 
         return res,newattrindex
 
@@ -136,6 +135,8 @@ class color_attribute:
     
 
     def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
+        print "grad"
+
 
     def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
         """ Set the color with a categorized symbol renderer """
@@ -256,8 +257,12 @@ class color_attribute:
             if self.dlg.isNewAttribute():
                 newattname = self.dlg.getAttributeText()
                 error,selected_attribute = self.check_and_create_attribute(self.layer,newattname)
+                
                 if error:
-                    print "raise error here"
+                    reply = QMessageBox.critical(self.dlg, 'Error',""
+                                                "Problem adding new attribute",""
+                                                ) 
+                    return
             else:
                 selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
             
