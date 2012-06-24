@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_color_attribute.ui'
 #
-# Created: Sun Jun 24 18:23:01 2012
+# Created: Sun Jun 24 18:59:13 2012
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -33,11 +33,6 @@ class Ui_color_attribute(object):
         self.colorBox = QtGui.QComboBox(color_attribute)
         self.colorBox.setObjectName(_fromUtf8("colorBox"))
         self.formLayout.setWidget(2, QtGui.QFormLayout.FieldRole, self.colorBox)
-        self.buttonBox = QtGui.QDialogButtonBox(color_attribute)
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
-        self.buttonBox.setObjectName(_fromUtf8("buttonBox"))
-        self.formLayout.setWidget(4, QtGui.QFormLayout.LabelRole, self.buttonBox)
         self.attrNewName = QtGui.QLineEdit(color_attribute)
         self.attrNewName.setEnabled(False)
         self.attrNewName.setObjectName(_fromUtf8("attrNewName"))
@@ -45,6 +40,11 @@ class Ui_color_attribute(object):
         self.label_3 = QtGui.QLabel(color_attribute)
         self.label_3.setObjectName(_fromUtf8("label_3"))
         self.formLayout.setWidget(3, QtGui.QFormLayout.LabelRole, self.label_3)
+        self.buttonBox = QtGui.QDialogButtonBox(color_attribute)
+        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Cancel|QtGui.QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName(_fromUtf8("buttonBox"))
+        self.formLayout.setWidget(4, QtGui.QFormLayout.FieldRole, self.buttonBox)
 
         self.retranslateUi(color_attribute)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("accepted()")), color_attribute.accept)
