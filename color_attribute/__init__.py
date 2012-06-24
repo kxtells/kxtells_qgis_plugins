@@ -23,7 +23,7 @@
 def name():
     return "Color_to_attribute"
 def description():
-    return "A description here"
+    return "Retrieve features fill color and add this value as a new attribute"
 def version():
     return "Version 0.1"
 def icon():
