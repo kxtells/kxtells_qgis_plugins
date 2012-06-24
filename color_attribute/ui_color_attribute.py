@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_color_attribute.ui'
 #
-# Created: Sun Jun 24 18:59:13 2012
+# Created: Sun Jun 24 19:39:34 2012
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -17,7 +17,7 @@ except AttributeError:
 class Ui_color_attribute(object):
     def setupUi(self, color_attribute):
         color_attribute.setObjectName(_fromUtf8("color_attribute"))
-        color_attribute.resize(533, 150)
+        color_attribute.resize(374, 150)
         self.formLayout = QtGui.QFormLayout(color_attribute)
         self.formLayout.setFieldGrowthPolicy(QtGui.QFormLayout.AllNonFixedFieldsGrow)
         self.formLayout.setObjectName(_fromUtf8("formLayout"))
