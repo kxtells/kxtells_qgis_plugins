@@ -92,8 +92,25 @@ class color_attribute:
     #
     ##################################################################
 
-    def check_and_create_attribute(self,layer):
-        print "Create attribute"
+    def check_and_create_attribute(self,layer,newattrtext):
+        """ Creates a new String attribute for the layer """
+        newattrindex = None
+        res = False
+
+        try:
+            caps = layer.dataProvider().capabilities()
+            if caps & QgsVectorDataProvider.AddAttributes:
+                res = layer.dataProvider().addAttributes( [ QgsField(newattrtext, QVariant.String) ] )
+                layer.updateFieldMap()
+                newattrindex = layer.dataProvider().fieldNameIndex(newattrtext)
+            else:
+                print "raise Cant add attributes to this layer"
+        except:
+            print "raise an error here"
+
+
+        return res,newattrindex
+
         # APP breakpoint
         #pyqtRemoveInputHook();pdb.set_trace()
 
@@ -119,11 +136,9 @@ class color_attribute:
     
 
     def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
-        print "GRAD"
 
     def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
         """ Set the color with a categorized symbol renderer """
-        print "categorized"
         layer = self.layer
         attribute = self.attribute
         provider = layer.dataProvider()
@@ -151,7 +166,6 @@ class color_attribute:
         
     def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""
-        print "fill_color_attribute_rendererV2"
 
         renderer = self.renderer
         rtype = type(renderer)
@@ -171,7 +185,6 @@ class color_attribute:
                                        )
 
     def fill_color_attribute(self):
-        print "color_attribute.py::fill_color_attribute"
         layer = self.layer
         
         if layer.isUsingRendererV2():
@@ -237,11 +250,18 @@ class color_attribute:
         
         if result == 1:
             selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
-            selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
-            
-            self.attribute = selected_attribute
             self.layer = selected_layer
             self.layer.setReadOnly(False)
+            
+            if self.dlg.isNewAttribute():
+                newattname = self.dlg.getAttributeText()
+                error,selected_attribute = self.check_and_create_attribute(self.layer,newattname)
+                if error:
+                    print "raise error here"
+            else:
+                selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
+            
+            self.attribute = selected_attribute
             
             self.fill_color_attribute()
 
