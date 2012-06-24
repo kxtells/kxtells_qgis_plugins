@@ -32,3 +32,10 @@ class color_attributeDialog(QtGui.QDialog):
         self.ui.setupUi(self)
 
 
+    def activate_deactivate_newname(self,index):
+        textedit = self.ui.attrNewName
+
+        if index == 0:
+            textedit.setEnabled(True)
+        else:
+            textedit.setDisabled(True)

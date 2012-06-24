@@ -68,7 +68,6 @@ class color_attribute:
    
 
     def initGui(self):
-        print "color_attribute.py::initGui"
         # Create action that will start plugin configuration
         self.action = QAction(QIcon(":/plugins/color_attribute/icon.png"), \
             u"Color_to_attribute", self.iface.mainWindow())
@@ -94,7 +93,7 @@ class color_attribute:
     ##################################################################
 
     def check_and_create_attribute(self,layer):
-        print "color_attribute.py::check_and_create_attribute"
+        print "Create attribute"
         # APP breakpoint
         #pyqtRemoveInputHook();pdb.set_trace()
 
@@ -113,12 +112,18 @@ class color_attribute:
 
         newattrs = { attribute : QVariant(colorstr)}
 
+        provider.select(provider.attributeIndexes())
         while provider.nextFeature(feat):
             fid = feat.id()
             provider.changeAttributeValues({ fid : newattrs })
     
+
+    def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
+        print "GRAD"
+
     def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
         """ Set the color with a categorized symbol renderer """
+        print "categorized"
         layer = self.layer
         attribute = self.attribute
         provider = layer.dataProvider()
@@ -131,10 +136,11 @@ class color_attribute:
             vals.append(cat.value().toString());
             colors.append(cat.symbol().color().name())
         
-
+        provider.select(provider.attributeIndexes())
         while provider.nextFeature(feat):
             fid = feat.id()
             attribute_map = feat.attributeMap()
+
             catindex = renderer.categoryIndexForValue(attribute_map[attrvalindex].toString())
             
             if catindex != -1: colorval = colors[catindex]
@@ -145,19 +151,18 @@ class color_attribute:
         
     def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""
+        print "fill_color_attribute_rendererV2"
 
         renderer = self.renderer
         rtype = type(renderer)
         if rtype == QgsSingleSymbolRendererV2:
             self.fill_color_attribute_singlesymbol_renderer(renderer)
         elif rtype == QgsCategorizedSymbolRendererV2:
-            print "Categorized"
             self.fill_color_attribute_categorizedsymbol_renderer(renderer)
         elif rtype == QgsGraduatedSymbolRendererV2:
-            print "Graduated"
+            self.fill_color_attribute_graduatedsymbol_renderer(renderer)
         else:
             self.fill_color_attribute_custom_renderer(renderer)
-            print "Other"
 
     def fill_color_attribute_rendererV1(self):
         """ Fill the color attribute using a renderer V1"""
@@ -197,7 +202,8 @@ class color_attribute:
         provider = selected_layer.dataProvider()
         columns = provider.fields()
         
-
+        attributesbox.addItem("New Attribute",None)
+        attributesbox.insertSeparator(1000)
         for key,value in columns.items():
             attributesbox.addItem(value.name(),QVariant(key))
 
@@ -228,7 +234,7 @@ class color_attribute:
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
+        
         if result == 1:
             selected_layer = layercombobox.itemData(layercombobox.currentIndex()).toPyObject()
             selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
