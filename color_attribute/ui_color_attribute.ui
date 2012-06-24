@@ -42,6 +42,9 @@
      <property name="enabled">
       <bool>false</bool>
      </property>
+     <property name="inputMethodHints">
+      <set>Qt::ImhUrlCharactersOnly</set>
+     </property>
     </widget>
    </item>
    <item row="3" column="0">
