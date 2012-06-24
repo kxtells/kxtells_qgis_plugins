@@ -25,6 +25,8 @@ from ui_color_attribute import Ui_color_attribute
 
 # create the dialog for zoom to point
 class color_attributeDialog(QtGui.QDialog):
+    new_attribute = False
+
     def __init__(self):
         QtGui.QDialog.__init__(self)
         # Set up the user interface from Designer.
@@ -37,5 +39,13 @@ class color_attributeDialog(QtGui.QDialog):
 
         if index == 0:
             textedit.setEnabled(True)
+            self.new_attribute = True
         else:
             textedit.setDisabled(True)
+            self.new_attribute = False
+
+    def isNewAttribute(self):
+        return self.new_attribute
+
+    def getAttributeText(self):
+        return self.ui.attrNewName.text()
