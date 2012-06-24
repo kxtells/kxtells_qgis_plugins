@@ -28,6 +28,8 @@ import resources_rc
 # Import the code for the dialog
 from color_attributedialog import color_attributeDialog
 
+import re
+
 # Use pdb for debugging
 import pdb
 
@@ -93,22 +95,29 @@ class color_attribute:
     ##################################################################
 
     def check_and_create_attribute(self,layer,newattrtext):
-        """ Creates a new String attribute for the layer """
-        newattrindex = None
-        res = False
+        """ 
+            Creates a new String attribute for the layer 
+            returns new attribute index (-1 if no new attribute is created)
+        """
+        newattrindex = -1 
+        
+        if not re.match("^[A-Za-z0-9_-]*$", newattrtext):
+            return -1
+        if len(newattrtext)==0:
+            return -1
 
         try:
             caps = layer.dataProvider().capabilities()
             
             if caps & QgsVectorDataProvider.AddAttributes:
-                res = layer.dataProvider().addAttributes( [ QgsField(newattrtext, QVariant.String) ] )
+                layer.dataProvider().addAttributes( [ QgsField(newattrtext, QVariant.String) ] )
                 layer.updateFieldMap()
                 newattrindex = layer.dataProvider().fieldNameIndex(newattrtext)
         
         except:
             pass
 
-        return res,newattrindex
+        return newattrindex
 
         # APP breakpoint
         #pyqtRemoveInputHook();pdb.set_trace()
@@ -256,9 +265,9 @@ class color_attribute:
             
             if self.dlg.isNewAttribute():
                 newattname = self.dlg.getAttributeText()
-                error,selected_attribute = self.check_and_create_attribute(self.layer,newattname)
+                selected_attribute = self.check_and_create_attribute(self.layer,newattname)
                 
-                if error:
+                if selected_attribute <0:
                     reply = QMessageBox.critical(self.dlg, 'Error',""
                                                 "Problem adding new attribute",""
                                                 ) 
