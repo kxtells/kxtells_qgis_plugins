@@ -37,6 +37,7 @@ class color_attribute:
     renderer = None
     layer = None
     attribute = None
+
     #Constants
     NOCOLOR = "NoColor"
 
@@ -137,9 +138,18 @@ class color_attribute:
         newattrs = { attribute : QVariant(colorstr)}
 
         provider.select(provider.attributeIndexes())
+        step = 0
         while provider.nextFeature(feat):
+            if self.dlg.isProgressCanceled():
+                break;
+
             fid = feat.id()
             provider.changeAttributeValues({ fid : newattrs })
+            
+            self.dlg.setProgressValue(step)
+            step += 1
+        
+        self.dlg.finish_progress_dialog()
     
 
     def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
@@ -151,7 +161,11 @@ class color_attribute:
         feat = QgsFeature()
 
         provider.select(provider.attributeIndexes())
+        step = 0
         while provider.nextFeature(feat):
+            if self.dlg.isProgressCanceled():
+                break;
+
             fid = feat.id()
             attribute_map = feat.attributeMap()
             value = float(attribute_map[attrvalindex].toString())
@@ -167,6 +181,10 @@ class color_attribute:
             newattrs = { attribute : QVariant(colorval)}
             provider.changeAttributeValues({ fid : newattrs })
 
+            self.dlg.setProgressValue(step)
+            step += 1
+
+        self.dlg.finish_progress_dialog()
 
 
     def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
@@ -179,7 +197,12 @@ class color_attribute:
         categories = renderer.categories()
 
         provider.select(provider.attributeIndexes())
+        step = 0
+
         while provider.nextFeature(feat):
+            if self.dlg.isProgressCanceled():
+                break;
+
             fid = feat.id()
             attribute_map = feat.attributeMap()
 
@@ -192,7 +215,12 @@ class color_attribute:
 
             newattrs = { attribute : QVariant(colorval)}
             provider.changeAttributeValues({ fid : newattrs })
+            
+            self.dlg.setProgressValue(step)
+            step += 1
         
+        self.dlg.finish_progress_dialog()
+
     def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""
 
@@ -249,6 +277,8 @@ class color_attribute:
         for key,value in columns.items():
             attributesbox.addItem(value.name(),QVariant(key))
 
+
+
     ##################################################################
     #
     #
@@ -295,6 +325,6 @@ class color_attribute:
                 selected_attribute = attributesbox.itemData(attributesbox.currentIndex()).toPyObject()
             
             self.attribute = selected_attribute
-            
+            self.dlg.create_progress_dialog(self.layer.featureCount())
             self.fill_color_attribute()
 

@@ -26,6 +26,7 @@ from ui_color_attribute import Ui_color_attribute
 # create the dialog for zoom to point
 class color_attributeDialog(QtGui.QDialog):
     new_attribute = False
+    progress_dialog = None
 
     def __init__(self):
         QtGui.QDialog.__init__(self)
@@ -43,6 +44,20 @@ class color_attributeDialog(QtGui.QDialog):
         else:
             textedit.setDisabled(True)
             self.new_attribute = False
+
+    def create_progress_dialog(self,nfeatures):
+        self.progress_dialog = QtGui.QProgressDialog("Adding Color Values", "Abort", 0, nfeatures, self)
+        self.progress_dialog.setWindowModality(QtCore.Qt.WindowModal)
+        self.progress_dialog.setMinimumDuration(0)
+
+    def setProgressValue(self,val):
+        self.progress_dialog.setValue(val)
+
+    def finish_progress_dialog(self):
+        self.progress_dialog.setValue(self.progress_dialog.maximum())
+
+    def isProgressCanceled(self):
+        return self.progress_dialog.wasCanceled()
 
     def isNewAttribute(self):
         return self.new_attribute
