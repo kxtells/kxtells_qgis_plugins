@@ -119,9 +119,6 @@ class color_attribute:
 
         return newattrindex
 
-        # APP breakpoint
-        #pyqtRemoveInputHook();pdb.set_trace()
-
     def fill_color_attribute_custom_renderer(self,renderer):
         reply = QMessageBox.information(self.dlg, 'Message',""
                                        "This layer uses a custom renderer. This is currently not supported by the plugin",""
@@ -154,13 +151,8 @@ class color_attribute:
         provider = layer.dataProvider()
         attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
         feat = QgsFeature()
-        vals = []
-        colors = []
+        categories = renderer.categories()
 
-        for cat in renderer.categories():
-            vals.append(cat.value().toString());
-            colors.append(cat.symbol().color().name())
-        
         provider.select(provider.attributeIndexes())
         while provider.nextFeature(feat):
             fid = feat.id()
@@ -168,8 +160,10 @@ class color_attribute:
 
             catindex = renderer.categoryIndexForValue(attribute_map[attrvalindex].toString())
             
-            if catindex != -1: colorval = colors[catindex]
-            else: colorval = "NoColor"
+            if catindex != -1: 
+                colorval = categories[catindex].symbol().color().name()
+            else: 
+                colorval = "NoColor"
 
             newattrs = { attribute : QVariant(colorval)}
             provider.changeAttributeValues({ fid : newattrs })
