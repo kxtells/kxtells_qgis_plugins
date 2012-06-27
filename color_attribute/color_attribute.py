@@ -39,7 +39,7 @@ class color_attribute:
     attribute = None
 
     #Constants
-    NOCOLOR = "NoColor"
+    NOCOLOR = "#FF00FF"
 
     ##################################################################
     #
