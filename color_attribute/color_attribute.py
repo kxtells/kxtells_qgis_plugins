@@ -37,6 +37,8 @@ class color_attribute:
     renderer = None
     layer = None
     attribute = None
+    #Constants
+    NOCOLOR = "NoColor"
 
     ##################################################################
     #
@@ -141,7 +143,30 @@ class color_attribute:
     
 
     def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
-        print "grad"
+        """ Set the color with a graduated symbol renderer """
+        layer = self.layer
+        attribute = self.attribute
+        provider = layer.dataProvider()
+        attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
+        feat = QgsFeature()
+
+        provider.select(provider.attributeIndexes())
+        while provider.nextFeature(feat):
+            fid = feat.id()
+            attribute_map = feat.attributeMap()
+            value = float(attribute_map[attrvalindex].toString())
+            
+            colorval = self.NOCOLOR
+            
+            for r in renderer.ranges():
+                if value >= r.lowerValue() \
+                    and value <= r.upperValue() \
+                    and colorval == self.NOCOLOR:
+                        colorval = r.symbol().color().name()
+
+            newattrs = { attribute : QVariant(colorval)}
+            provider.changeAttributeValues({ fid : newattrs })
+
 
 
     def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
@@ -163,7 +188,7 @@ class color_attribute:
             if catindex != -1: 
                 colorval = categories[catindex].symbol().color().name()
             else: 
-                colorval = "NoColor"
+                colorval = self.NOCOLOR
 
             newattrs = { attribute : QVariant(colorval)}
             provider.changeAttributeValues({ fid : newattrs })
