@@ -124,10 +124,10 @@ class color_attribute:
         self.progress.setMaximum(maxval)
         progressMessageBar.layout().addWidget(self.progress)
 
-        button = QPushButton()
-        button.setText("Cancel")
-        button.pressed.connect(self.cancel_progress_bar)
-        progressMessageBar.layout().addWidget(button)
+        #button = QPushButton()
+        #button.setText("Cancel")
+        #button.pressed.connect(self.cancel_progress_bar)
+        #progressMessageBar.layout().addWidget(button)
 
         self.iface.messageBar().pushWidget(progressMessageBar, self.iface.messageBar().INFO)
 
@@ -154,7 +154,6 @@ class color_attribute:
             Returns the new QgsField.
             Raises exceptions for any possible error
         """
-        newattrindex = -1 
         qgsfield = None
         
         if not re.match("^[A-Za-z0-9_-]*$", newattrtext):
@@ -165,7 +164,7 @@ class color_attribute:
         # If it already exists, return the existing index
         layer_fields = layer.dataProvider().fields()
         existing_index = layer_fields.indexFromName(newattrtext)
-        if existing_index == -1:
+        if existing_index != -1:
             self.log_warning("Using existing field. It will be overwritten")
             return layer_fields[existing_index]
 
@@ -174,6 +173,7 @@ class color_attribute:
             
             if caps & QgsVectorDataProvider.AddAttributes: #Is that something good?
                 qgsfield = QgsField(newattrtext, QVariant.String)
+                layer.startEditing()
 
                 layer.dataProvider().addAttributes([qgsfield])
                 layer.reload()
@@ -209,7 +209,7 @@ class color_attribute:
         iter = layer.getFeatures()
         step = 0
         for feat in iter:
-            #if self.dlg.isProgressCanceled():
+            #if self.dlg.isProgressCanceled(): #Can't cancel the process
             #    break;
 
             fid = feat.id()
@@ -220,6 +220,42 @@ class color_attribute:
             step += 1
         
         layer.commitChanges()
+
+    def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
+        """ Set the color with a graduated symbol renderer """
+        layer = self.layer
+        attribute = self.attribute
+        provider = layer.dataProvider()
+        attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
+        feat = QgsFeature()
+
+        #provider.select(provider.attributeIndexes())
+        iter = layer.getFeatures()
+        step = 0
+        for feat in iter:
+            #if self.dlg.isProgressCanceled():
+            #    break;
+
+            fid = feat.id()
+            attribute_map = feat.attributes()
+            value = float(attribute_map[attrvalindex])
+            
+            colorval = self.NOCOLOR
+            
+            for r in renderer.ranges():
+                if value >= r.lowerValue() \
+                    and value <= r.upperValue() \
+                    and colorval == self.NOCOLOR:
+                        colorval = r.symbol().color().name()
+
+            newattrs = { attribute : colorval}
+            provider.changeAttributeValues({ fid : newattrs })
+
+            self.set_progress_value(step)
+            step += 1
+
+        layer.commitChanges()
+
 
     def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""
@@ -232,11 +268,9 @@ class color_attribute:
             pass
             #self.fill_color_attribute_categorizedsymbol_renderer(renderer)
         elif rtype == QgsGraduatedSymbolRendererV2:
-            pass
-            #self.fill_color_attribute_graduatedsymbol_renderer(renderer)
+            self.fill_color_attribute_graduatedsymbol_renderer(renderer)
         else:
-            pass
-            #self.fill_color_attribute_custom_renderer(renderer)
+            self.fill_color_attribute_custom_renderer(renderer)
 
     def fill_color_attribute(self):
         layer = self.layer
@@ -322,3 +356,5 @@ class color_attribute:
             self.iface.messageBar().pushMessage(cae.title, 
                                                 cae.msg,
                                                 level=cae.level)
+
+            self.iface.messageBar().clearWidgets() #Do not let the bar stay there
