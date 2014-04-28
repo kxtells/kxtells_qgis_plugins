@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/color_attribute" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>
