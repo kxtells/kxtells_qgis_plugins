@@ -27,16 +27,36 @@ from qgis.core import *
 import resources_rc
 # Import the code for the dialog
 from color_attributedialog import color_attributeDialog
+from color_attribute_exceptions import *
 import os.path
 
+import re
 
 class color_attribute:
+    renderer = None
+
+
+    #Constants
+    NOCOLOR = "#FF00FF"
 
     def __init__(self, iface):
+        # By default do not use visual feedback
+        # Fun to see (select, deselect). But slow as an old mule
+        self.visual_feedback = False
+
         # Save reference to the QGIS interface
         self.iface = iface
+
+        # Create the dialog and keep reference
+        self.dlg = color_attributeDialog()
+        QObject.connect(self.dlg.ui.layerBox, 
+                        SIGNAL("currentIndexChanged(int)"), 
+                        self.on_layerCombo_currentIndexChanged)
+
+
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
+
         # initialize locale
         locale = QSettings().value("locale/userLocale")[0:2]
         localePath = os.path.join(self.plugin_dir, 'i18n', 'color_attribute_{}.qm'.format(locale))
@@ -47,9 +67,6 @@ class color_attribute:
 
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
-
-        # Create the dialog (after translation) and keep reference
-        self.dlg = color_attributeDialog()
 
     def initGui(self):
         # Create action that will start plugin configuration
@@ -68,14 +85,174 @@ class color_attribute:
         self.iface.removePluginMenu(u"&color_attribute", self.action)
         self.iface.removeToolBarIcon(self.action)
 
+    ##################################################################
+    #
+    #
+    # Plugin functions dealing with the colors of the renderers
+    #
+    #
+    ##################################################################
+
+    def check_and_create_attribute(self,layer,newattrtext):
+        """ 
+            Creates a new String attribute for the layer 
+            Returns the new QgsField.
+            Raises exceptions for any possible error
+        """
+        newattrindex = -1 
+        qgsfield = None
+        
+        if not re.match("^[A-Za-z0-9_-]*$", newattrtext):
+            raise InvalidAttributeName
+        if len(newattrtext)==0:
+            raise EmptyAttributeName
+
+        try:
+            caps = layer.dataProvider().capabilities()
+            
+            if caps & QgsVectorDataProvider.AddAttributes: #Is that something good?
+                #layer.startEditing()
+                qgsfield = QgsField(newattrtext, QVariant.String)
+
+                layer.dataProvider().addAttributes([qgsfield])
+                #layer.updateFieldMap()
+                layer.reload()
+                #newattrindex = layer.dataProvider().fieldNameIndex(newattrtext)
+
+                layer.commitChanges()
+        
+        except Exception as e:
+            raise e
+
+        return qgsfield
+
+    def fill_color_attribute_custom_renderer(self,renderer):
+        reply = QMessageBox.information(self.dlg, 'Message',""
+                                       ("This layer uses a custom renderer."
+                                        " This is currently not supported by the plugin")
+                                        ,""
+                                       )
+
+    def fill_color_attribute_singlesymbol_renderer(self,renderer):
+        """ Set the single color into each of the features """
+        layer = self.layer
+        attribute = self.attribute
+        colorstr = str(renderer.symbol().color().name())
+        provider = layer.dataProvider()
+        feat = QgsFeature()
+
+        newattrs = { attribute : colorstr}
+
+        #layer.selectAll()
+
+        layer.startEditing()
+
+        iter = layer.getFeatures()
+        step = 0
+        for feat in iter:
+            if self.dlg.isProgressCanceled():
+                break;
+
+            fid = feat.id()
+            provider.changeAttributeValues({ fid : newattrs })
+            #layer.deselect(fid) #Not sure
+            
+            self.dlg.setProgressValue(step)
+            step += 1
+        
+        self.dlg.finish_progress_dialog()
+        layer.commitChanges()
+
+    def fill_color_attribute_rendererV2(self):
+        """ Fill the color attribute using a renderer V2"""
+
+        renderer = self.renderer
+        rtype = type(renderer)
+        if rtype == QgsSingleSymbolRendererV2:
+            self.fill_color_attribute_singlesymbol_renderer(renderer)
+        elif rtype == QgsCategorizedSymbolRendererV2:
+            pass
+            #self.fill_color_attribute_categorizedsymbol_renderer(renderer)
+        elif rtype == QgsGraduatedSymbolRendererV2:
+            pass
+            #self.fill_color_attribute_graduatedsymbol_renderer(renderer)
+        else:
+            pass
+            #self.fill_color_attribute_custom_renderer(renderer)
+
+    def fill_color_attribute(self):
+        layer = self.layer
+        
+        self.renderer = layer.rendererV2()
+        self.fill_color_attribute_rendererV2()
+
+    ##################################################################
+    #
+    #
+    # GUI data fillers
+    #
+    #
+    ##################################################################
+
+    def on_layerCombo_currentIndexChanged(self,g):
+        """ Fill the attributes combo box with the current layer attributes """
+        layercombobox = self.dlg.ui.layerBox
+        attributesbox = self.dlg.ui.colorBox
+        selected_layer = layercombobox.itemData(layercombobox.currentIndex())
+        
+        if selected_layer == None: return
+        attributesbox.clear()
+
+        provider = selected_layer.dataProvider()
+        columns = provider.fields()
+        
+        attributesbox.addItem("New Attribute",None)
+        attributesbox.insertSeparator(1000)
+        for qgsfield in columns:
+            attributesbox.addItem(qgsfield.name(),qgsfield)
+
+
+
     # run method that performs all the real work
     def run(self):
+        layercombobox = self.dlg.ui.layerBox
+        attributesbox = self.dlg.ui.colorBox
+
+        layercombobox.clear()
+        attributesbox.clear()
+
+        # APP breakpoint
+        #pyqtRemoveInputHook()
+        #pdb.set_trace()
+
+        #Fill the combo box
+        for layer in self.iface.legendInterface().layers():
+            if layer.type() == QgsMapLayer.VectorLayer:
+                layercombobox.addItem(layer.name(),layer)
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
+        
         if result == 1:
-            # do something useful (delete the line containing pass and
-            # substitute with your code)
-            pass
+            selected_layer = layercombobox.itemData(layercombobox.currentIndex())
+            self.layer = selected_layer
+            self.layer.setReadOnly(False)
+            
+            if self.dlg.isNewAttribute():
+                newattname = self.dlg.getAttributeText()
+                selected_attribute = self.check_and_create_attribute(self.layer,newattname)
+                
+                if selected_attribute <0:
+                    reply = QMessageBox.critical(self.dlg, 'Error',""
+                                                "Problem adding new attribute",""
+                                                ) 
+                    return
+            else:
+                selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
+            
+            self.attribute = layer.dataProvider().fields().indexFromName(selected_attribute.name())
+            self.dlg.create_progress_dialog(self.layer.featureCount())
+            self.fill_color_attribute()
+
