@@ -35,6 +35,7 @@ class Ui_color_attribute(object):
         self.formLayout.setWidget(2, QtGui.QFormLayout.FieldRole, self.colorBox)
         self.attrNewName = QtGui.QLineEdit(color_attribute)
         self.attrNewName.setEnabled(False)
+        self.attrNewName.setMaxLength(10)
         self.attrNewName.setInputMethodHints(QtCore.Qt.ImhUrlCharactersOnly)
         self.attrNewName.setObjectName(_fromUtf8("attrNewName"))
         self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.attrNewName)
