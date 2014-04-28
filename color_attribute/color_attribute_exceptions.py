@@ -14,3 +14,8 @@ class EmptyAttributeName(ColorAttributeException):
     title = "Empty"
     level = QgsMessageBar.CRITICAL
     msg = "The attribute name is empty"
+
+class AttributeAlreadyExists(ColorAttributeException):
+    title = "Empty"
+    level = QgsMessageBar.WARNING
+    msg = "The specified name is already an attribute. It is overwritten"

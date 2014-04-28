@@ -34,7 +34,12 @@ import os.path
 import re
 
 class color_attribute:
+    PLUGIN_NAME = "ColorToAttribute"
+
     renderer = None
+
+    progress = None
+    progress_cancelled = False
 
 
     #Constants
@@ -53,7 +58,6 @@ class color_attribute:
         QObject.connect(self.dlg.ui.layerBox, 
                         SIGNAL("currentIndexChanged(int)"), 
                         self.on_layerCombo_currentIndexChanged)
-
 
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
@@ -89,12 +93,62 @@ class color_attribute:
     ##################################################################
     #
     #
+    # User feedback
+    #
+    #
+    ##################################################################
+
+    def give_warning(self, message):
+        self.iface.messageBar().pushMessage("WARNING", 
+                                            message,
+                                            level = QgsMessageBar.WARNING
+                                            )
+
+    def log_warning(self, message):
+        QgsMessageLog.logMessage(self.PLUGIN_NAME + ": " + message)
+
+
+    ##################################################################
+    #
+    #
+    # Basic progress bar
+    #
+    #
+    ##################################################################
+
+    def start_progress_bar(self, maxval, message):
+        self.progress = QProgressBar()
+        self.progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+
+        progressMessageBar = self.iface.messageBar().createMessage(message)
+        self.progress.setMaximum(maxval)
+        progressMessageBar.layout().addWidget(self.progress)
+
+        button = QPushButton()
+        button.setText("Cancel")
+        button.pressed.connect(self.cancel_progress_bar)
+        progressMessageBar.layout().addWidget(button)
+
+        self.iface.messageBar().pushWidget(progressMessageBar, self.iface.messageBar().INFO)
+
+    def set_progress_value(self, value):
+        if self.progress == None:
+            return #TODO do something here?
+        self.progress.setValue(value)
+
+    def cancel_progress_bar(self):
+        self.progress_cancelled = True
+        raise InvalidAttributeName
+
+    ##################################################################
+    #
+    #
     # Plugin functions dealing with the colors of the renderers
     #
     #
     ##################################################################
 
-    def check_and_create_attribute(self,layer,newattrtext):
+    def check_and_create_attribute(self, layer, newattrtext):
         """ 
             Creates a new String attribute for the layer 
             Returns the new QgsField.
@@ -107,18 +161,22 @@ class color_attribute:
             raise InvalidAttributeName
         if len(newattrtext)==0:
             raise EmptyAttributeName
+        
+        # If it already exists, return the existing index
+        layer_fields = layer.dataProvider().fields()
+        existing_index = layer_fields.indexFromName(newattrtext)
+        if existing_index == -1:
+            self.log_warning("Using existing field. It will be overwritten")
+            return layer_fields[existing_index]
 
         try:
             caps = layer.dataProvider().capabilities()
             
             if caps & QgsVectorDataProvider.AddAttributes: #Is that something good?
-                #layer.startEditing()
                 qgsfield = QgsField(newattrtext, QVariant.String)
 
                 layer.dataProvider().addAttributes([qgsfield])
-                #layer.updateFieldMap()
                 layer.reload()
-                #newattrindex = layer.dataProvider().fieldNameIndex(newattrtext)
 
                 layer.commitChanges()
         
@@ -151,17 +209,16 @@ class color_attribute:
         iter = layer.getFeatures()
         step = 0
         for feat in iter:
-            if self.dlg.isProgressCanceled():
-                break;
+            #if self.dlg.isProgressCanceled():
+            #    break;
 
             fid = feat.id()
             provider.changeAttributeValues({ fid : newattrs })
             #layer.deselect(fid) #Not sure
             
-            self.dlg.setProgressValue(step)
+            self.set_progress_value(step)
             step += 1
         
-        self.dlg.finish_progress_dialog()
         layer.commitChanges()
 
     def fill_color_attribute_rendererV2(self):
@@ -255,8 +312,12 @@ class color_attribute:
                     selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
                 
                 self.attribute = layer.dataProvider().fields().indexFromName(selected_attribute.name())
-                self.dlg.create_progress_dialog(self.layer.featureCount())
+                #self.dlg.create_progress_dialog(self.layer.featureCount())
+                self.start_progress_bar(self.layer.featureCount(), "Color To Attribute")
                 self.fill_color_attribute()
+
+                self.iface.messageBar().clearWidgets() #Do not let the bar stay there
+
         except ColorAttributeException as cae:
             self.iface.messageBar().pushMessage(cae.title, 
                                                 cae.msg,
