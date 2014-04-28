@@ -23,6 +23,7 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
+from qgis.gui import QgsMessageBar
 # Initialize Qt resources from file resources.py
 import resources_rc
 # Import the code for the dialog
@@ -215,44 +216,48 @@ class color_attribute:
 
     # run method that performs all the real work
     def run(self):
-        layercombobox = self.dlg.ui.layerBox
-        attributesbox = self.dlg.ui.colorBox
-
-        layercombobox.clear()
-        attributesbox.clear()
-
-        # APP breakpoint
-        #pyqtRemoveInputHook()
-        #pdb.set_trace()
-
-        #Fill the combo box
-        for layer in self.iface.legendInterface().layers():
-            if layer.type() == QgsMapLayer.VectorLayer:
-                layercombobox.addItem(layer.name(),layer)
-
-        # show the dialog
-        self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        
-        if result == 1:
-            selected_layer = layercombobox.itemData(layercombobox.currentIndex())
-            self.layer = selected_layer
-            self.layer.setReadOnly(False)
+        try:
+            layercombobox = self.dlg.ui.layerBox
+            attributesbox = self.dlg.ui.colorBox
+    
+            layercombobox.clear()
+            attributesbox.clear()
+    
+            # APP breakpoint
+            #pyqtRemoveInputHook()
+            #pdb.set_trace()
+    
+            #Fill the combo box
+            for layer in self.iface.legendInterface().layers():
+                if layer.type() == QgsMapLayer.VectorLayer:
+                    layercombobox.addItem(layer.name(),layer)
+    
+            # show the dialog
+            self.dlg.show()
+            # Run the dialog event loop
+            result = self.dlg.exec_()
             
-            if self.dlg.isNewAttribute():
-                newattname = self.dlg.getAttributeText()
-                selected_attribute = self.check_and_create_attribute(self.layer,newattname)
+            if result == 1:
+                selected_layer = layercombobox.itemData(layercombobox.currentIndex())
+                self.layer = selected_layer
+                self.layer.setReadOnly(False)
                 
-                if selected_attribute <0:
-                    reply = QMessageBox.critical(self.dlg, 'Error',""
-                                                "Problem adding new attribute",""
-                                                ) 
-                    return
-            else:
-                selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
-            
-            self.attribute = layer.dataProvider().fields().indexFromName(selected_attribute.name())
-            self.dlg.create_progress_dialog(self.layer.featureCount())
-            self.fill_color_attribute()
-
+                if self.dlg.isNewAttribute():
+                    newattname = self.dlg.getAttributeText()
+                    selected_attribute = self.check_and_create_attribute(self.layer,newattname)
+                    
+                    if selected_attribute <0:
+                        reply = QMessageBox.critical(self.dlg, 'Error',""
+                                                    "Problem adding new attribute",""
+                                                    ) 
+                        return
+                else:
+                    selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
+                
+                self.attribute = layer.dataProvider().fields().indexFromName(selected_attribute.name())
+                self.dlg.create_progress_dialog(self.layer.featureCount())
+                self.fill_color_attribute()
+        except ColorAttributeException as cae:
+            self.iface.messageBar().pushMessage(cae.title, 
+                                                cae.msg,
+                                                level=cae.level)
