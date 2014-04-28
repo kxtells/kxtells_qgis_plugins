@@ -256,6 +256,42 @@ class color_attribute:
 
         layer.commitChanges()
 
+    def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
+        """ Set the color with a categorized symbol renderer """
+        layer = self.layer
+        attribute = self.attribute
+        provider = layer.dataProvider()
+        attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
+        feat = QgsFeature()
+        categories = renderer.categories()
+
+        step = 0
+
+
+        iter = layer.getFeatures()
+        step = 0
+        for feat in iter:
+            #if self.dlg.isProgressCanceled():
+            #    break;
+
+            fid = feat.id()
+            attribute_map = feat.attributes()
+
+            catindex = renderer.categoryIndexForValue(attribute_map[attrvalindex])
+            
+            if catindex != -1: 
+                colorval = categories[catindex].symbol().color().name()
+            else: 
+                colorval = self.NOCOLOR
+
+            newattrs = { attribute : colorval}
+            provider.changeAttributeValues({ fid : newattrs })
+            
+            self.set_progress_value(step)
+            step += 1
+        
+        layer.commitChanges()
+
 
     def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""
@@ -265,8 +301,7 @@ class color_attribute:
         if rtype == QgsSingleSymbolRendererV2:
             self.fill_color_attribute_singlesymbol_renderer(renderer)
         elif rtype == QgsCategorizedSymbolRendererV2:
-            pass
-            #self.fill_color_attribute_categorizedsymbol_renderer(renderer)
+            self.fill_color_attribute_categorizedsymbol_renderer(renderer)
         elif rtype == QgsGraduatedSymbolRendererV2:
             self.fill_color_attribute_graduatedsymbol_renderer(renderer)
         else:
