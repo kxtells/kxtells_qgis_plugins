@@ -188,11 +188,12 @@ class color_attribute:
 
     def fill_color_attribute_custom_renderer(self,renderer):
         """ Fill a color attribute when using a custom renderer """
-        reply = QMessageBox.information(self.dlg, 'Message',""
-                                       ("This layer uses a custom renderer."
-                                        " This is currently not supported by the plugin")
-                                        ,""
-                                       )
+        raise InvalidCustomRenderer
+        #reply = QMessageBox.information(self.dlg, 'Message',""
+        #                               ("This layer uses a custom renderer."
+        #                                " This is currently not supported by the plugin")
+        #                                ,""
+        #                               )
 
     def fill_color_attribute_singlesymbol_renderer(self,renderer):
         """ Set the single color into each of the features """
@@ -264,6 +265,9 @@ class color_attribute:
         feat = QgsFeature()
         categories = renderer.categories()
 
+        if attribute < 0:
+            raise InternalPluginError
+
         iter = layer.getFeatures()
         step = 0
         for feat in iter:
@@ -284,7 +288,6 @@ class color_attribute:
             step += 1
         
         layer.commitChanges()
-
 
     def fill_color_attribute_rendererV2(self):
         """ Fill the color attribute using a renderer V2"""

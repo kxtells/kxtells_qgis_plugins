@@ -25,6 +25,11 @@ class InternalPluginError(ColorAttributeException):
     level = QgsMessageBar.CRITICAL
     msg = "Something bad happened"
 
+class InvalidCustomRenderer(ColorAttributeException):
+    title = "Error"
+    level = QgsMessageBar.WARNING
+    msg = "Can't obtain the color from a custom renderer"
+
 class AttributeAlreadyExists(ColorAttributeException):
     title = "Empty"
     level = QgsMessageBar.WARNING
