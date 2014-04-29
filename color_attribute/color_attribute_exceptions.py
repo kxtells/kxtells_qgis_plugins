@@ -10,6 +10,11 @@ class InvalidAttributeName(ColorAttributeException):
     level = QgsMessageBar.CRITICAL
     msg = "The attribute name contains invalid characters"
 
+class InvalidAttributeType(ColorAttributeException):
+    title = "Invalid Type"
+    level = QgsMessageBar.CRITICAL
+    msg = "The attribute is not of type String"
+
 class EmptyAttributeName(ColorAttributeException):
     title = "Empty"
     level = QgsMessageBar.CRITICAL

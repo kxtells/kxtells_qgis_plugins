@@ -365,6 +365,9 @@ class color_attribute:
                         return
                 else:
                     selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
+
+                if selected_attribute.type() != QVariant.String:
+                    raise InvalidAttributeType
                 
                 self.attribute = self.layer.dataProvider().fields().indexFromName(selected_attribute.name())
                 self.start_progress_bar(self.layer.featureCount(), "Color To Attribute")
