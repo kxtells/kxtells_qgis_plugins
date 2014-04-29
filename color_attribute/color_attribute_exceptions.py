@@ -15,6 +15,11 @@ class EmptyAttributeName(ColorAttributeException):
     level = QgsMessageBar.CRITICAL
     msg = "The attribute name is empty"
 
+class InternalPluginError(ColorAttributeException):
+    title = "ColorAttribute Error"
+    level = QgsMessageBar.CRITICAL
+    msg = "Something bad happened"
+
 class AttributeAlreadyExists(ColorAttributeException):
     title = "Empty"
     level = QgsMessageBar.WARNING

@@ -202,6 +202,9 @@ class color_attribute:
         provider = layer.dataProvider()
         feat = QgsFeature()
 
+        if attribute < 0:
+            raise InternalPluginError
+
         newattrs = { attribute : colorstr}
 
         layer.startEditing()
@@ -224,6 +227,9 @@ class color_attribute:
         provider = layer.dataProvider()
         attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
         feat = QgsFeature()
+
+        if attrvalindex < 0:
+            raise InternalPluginError
 
         iter = layer.getFeatures()
         step = 0
@@ -333,10 +339,6 @@ class color_attribute:
             layercombobox.clear()
             attributesbox.clear()
     
-            # APP breakpoint
-            #pyqtRemoveInputHook()
-            #pdb.set_trace()
-    
             #Fill the combo box
             for layer in self.iface.legendInterface().layers():
                 if layer.type() == QgsMapLayer.VectorLayer:
@@ -364,16 +366,14 @@ class color_attribute:
                 else:
                     selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
                 
-                self.attribute = layer.dataProvider().fields().indexFromName(selected_attribute.name())
-                #self.dlg.create_progress_dialog(self.layer.featureCount())
+                self.attribute = self.layer.dataProvider().fields().indexFromName(selected_attribute.name())
                 self.start_progress_bar(self.layer.featureCount(), "Color To Attribute")
                 self.fill_color_attribute()
 
                 self.iface.messageBar().clearWidgets() #Do not let the bar stay there
 
         except ColorAttributeException as cae:
+            self.iface.messageBar().clearWidgets() #Remove progress before pushing Message
             self.iface.messageBar().pushMessage(cae.title, 
                                                 cae.msg,
                                                 level=cae.level)
-
-            self.iface.messageBar().clearWidgets() #Do not let the bar stay there
