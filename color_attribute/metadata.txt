@@ -9,7 +9,7 @@
 
 
 [general]
-name=color_attribute
+name=Color to Attribute
 qgisMinimumVersion=2.0
 description=Create a new colum in the layer to hold the color of the feature
 version=0.1
