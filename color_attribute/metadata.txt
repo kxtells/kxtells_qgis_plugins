@@ -24,11 +24,11 @@ email=jordi.kstells@gmail.com
 # changelog=
 
 # tags are comma separated with spaces allowed
-tags=
+tags=vector,color
 
 homepage=
 tracker=
-repository=
+repository=https://github.com/kxtells/kxtells_qgis_plugins/tree/qgis2.2
 icon=icon.png
 # experimental flag
 experimental=False
