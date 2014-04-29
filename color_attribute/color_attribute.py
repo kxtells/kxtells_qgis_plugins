@@ -19,6 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 # Import the PyQt and QGIS libraries
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -41,15 +42,10 @@ class color_attribute:
     progress = None
     progress_cancelled = False
 
-
     #Constants
     NOCOLOR = "#FF00FF"
 
     def __init__(self, iface):
-        # By default do not use visual feedback
-        # Fun to see (select, deselect). But slow as an old mule
-        self.visual_feedback = False
-
         # Save reference to the QGIS interface
         self.iface = iface
 
@@ -92,37 +88,40 @@ class color_attribute:
 
     ##################################################################
     #
-    #
     # User feedback
-    #
     #
     ##################################################################
 
     def give_warning(self, message):
+        """ Send a warning message to the messagebar """
         self.iface.messageBar().pushMessage("WARNING", 
                                             message,
                                             level = QgsMessageBar.WARNING
                                             )
 
     def log_warning(self, message):
+        """ Log a warning message """
         QgsMessageLog.logMessage(self.PLUGIN_NAME + ": " + message)
 
 
     ##################################################################
     #
-    #
     # Basic progress bar
-    #
     #
     ##################################################################
 
     def start_progress_bar(self, maxval, message):
+        """ Create a progress bar into the messagebar """
         self.progress = QProgressBar()
         self.progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
 
         progressMessageBar = self.iface.messageBar().createMessage(message)
         self.progress.setMaximum(maxval)
         progressMessageBar.layout().addWidget(self.progress)
+
+        # TODO 
+        # Cancel button can't be pressed like this. so simply removing it.
+        # Anyway the process is straightforward and should not take hours
 
         #button = QPushButton()
         #button.setText("Cancel")
@@ -132,19 +131,21 @@ class color_attribute:
         self.iface.messageBar().pushWidget(progressMessageBar, self.iface.messageBar().INFO)
 
     def set_progress_value(self, value):
+        """ update a previously created progress bar. 
+            Ignore if there is no progress bar
+        """
         if self.progress == None:
             return #TODO do something here?
         self.progress.setValue(value)
 
     def cancel_progress_bar(self):
+        """ Cancel the progress bar """
         self.progress_cancelled = True
         raise InvalidAttributeName
 
     ##################################################################
     #
-    #
     # Plugin functions dealing with the colors of the renderers
-    #
     #
     ##################################################################
 
@@ -186,6 +187,7 @@ class color_attribute:
         return qgsfield
 
     def fill_color_attribute_custom_renderer(self,renderer):
+        """ Fill a color attribute when using a custom renderer """
         reply = QMessageBox.information(self.dlg, 'Message',""
                                        ("This layer uses a custom renderer."
                                         " This is currently not supported by the plugin")
@@ -202,19 +204,13 @@ class color_attribute:
 
         newattrs = { attribute : colorstr}
 
-        #layer.selectAll()
-
         layer.startEditing()
 
         iter = layer.getFeatures()
         step = 0
         for feat in iter:
-            #if self.dlg.isProgressCanceled(): #Can't cancel the process
-            #    break;
-
             fid = feat.id()
             provider.changeAttributeValues({ fid : newattrs })
-            #layer.deselect(fid) #Not sure
             
             self.set_progress_value(step)
             step += 1
@@ -229,12 +225,9 @@ class color_attribute:
         attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
         feat = QgsFeature()
 
-        #provider.select(provider.attributeIndexes())
         iter = layer.getFeatures()
         step = 0
         for feat in iter:
-            #if self.dlg.isProgressCanceled():
-            #    break;
 
             fid = feat.id()
             attribute_map = feat.attributes()
@@ -265,15 +258,9 @@ class color_attribute:
         feat = QgsFeature()
         categories = renderer.categories()
 
-        step = 0
-
-
         iter = layer.getFeatures()
         step = 0
         for feat in iter:
-            #if self.dlg.isProgressCanceled():
-            #    break;
-
             fid = feat.id()
             attribute_map = feat.attributes()
 
@@ -315,9 +302,7 @@ class color_attribute:
 
     ##################################################################
     #
-    #
     # GUI data fillers
-    #
     #
     ##################################################################
 
@@ -339,9 +324,8 @@ class color_attribute:
             attributesbox.addItem(qgsfield.name(),qgsfield)
 
 
-
-    # run method that performs all the real work
     def run(self):
+        """ Main method """
         try:
             layercombobox = self.dlg.ui.layerBox
             attributesbox = self.dlg.ui.colorBox
@@ -372,7 +356,7 @@ class color_attribute:
                     newattname = self.dlg.getAttributeText()
                     selected_attribute = self.check_and_create_attribute(self.layer,newattname)
                     
-                    if selected_attribute <0:
+                    if selected_attribute < 0:
                         reply = QMessageBox.critical(self.dlg, 'Error',""
                                                     "Problem adding new attribute",""
                                                     ) 
