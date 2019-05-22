@@ -26,13 +26,12 @@ email=jordi.kstells@gmail.com
 # tags are comma separated with spaces allowed
 tags=vector,color
 
-homepage=
+homepage=https://jcastellssala.com/2012/06/27/qgis-color-to-layer-attribute/
 tracker=
 repository=https://github.com/kxtells/kxtells_qgis_plugins/tree/qgis2.2
 icon=icon.png
+
 # experimental flag
 experimental=False
-
 # deprecated flag (applies to the whole plugin, not just a single version
 deprecated=False
-
