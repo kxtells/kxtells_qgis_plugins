@@ -11,7 +11,12 @@
 [general]
 name=Color to Attribute
 qgisMinimumVersion=2.0
-description=Create a new colum in the layer to hold the color of the feature
+description=Create a new colum in a layer holding each feature color
+about=Create a new colum in a layer holding each feature color.
+    Using a simple dialog, choose a layer and an existing or new
+    string/Text attribute that will store colors in the common
+    hexadecimal format.
+    
 version=0.1
 author=Jordi Castells
 email=jordi.kstells@gmail.com
