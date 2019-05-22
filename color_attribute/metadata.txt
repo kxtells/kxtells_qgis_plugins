@@ -32,8 +32,8 @@ email=jordi.kstells@gmail.com
 tags=vector,color
 
 homepage=https://jcastellssala.com/2012/06/27/qgis-color-to-layer-attribute/
-tracker=
-repository=https://github.com/kxtells/kxtells_qgis_plugins/tree/qgis2.2
+tracker=https://github.com/kxtells/kxtells_qgis_plugins/issues
+repository=https://github.com/kxtells/kxtells_qgis_plugins/tree/master/color_attribute
 icon=icon.png
 
 # experimental flag
