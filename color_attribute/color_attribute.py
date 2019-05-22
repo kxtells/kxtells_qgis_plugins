@@ -34,6 +34,7 @@ import os.path
 
 import re
 
+
 class color_attribute:
     PLUGIN_NAME = "ColorToAttribute"
 
@@ -42,7 +43,7 @@ class color_attribute:
     progress = None
     progress_cancelled = False
 
-    #Constants
+    # Constants
     NOCOLOR = "#FF00FF"
 
     def __init__(self, iface):
@@ -51,8 +52,8 @@ class color_attribute:
 
         # Create the dialog and keep reference
         self.dlg = color_attributeDialog()
-        QObject.connect(self.dlg.ui.layerBox, 
-                        SIGNAL("currentIndexChanged(int)"), 
+        QObject.connect(self.dlg.ui.layerBox,
+                        SIGNAL("currentIndexChanged(int)"),
                         self.on_layerCombo_currentIndexChanged)
 
         # initialize plugin directory
@@ -60,7 +61,9 @@ class color_attribute:
 
         # initialize locale
         locale = QSettings().value("locale/userLocale")[0:2]
-        localePath = os.path.join(self.plugin_dir, 'i18n', 'color_attribute_{}.qm'.format(locale))
+        localePath = os.path.join(self.plugin_dir,
+                                  'i18n',
+                                  'color_attribute_{}.qm'.format(locale))
 
         if os.path.exists(localePath):
             self.translator = QTranslator()
@@ -94,15 +97,14 @@ class color_attribute:
 
     def give_warning(self, message):
         """ Send a warning message to the messagebar """
-        self.iface.messageBar().pushMessage("WARNING", 
+        self.iface.messageBar().pushMessage("WARNING",
                                             message,
-                                            level = QgsMessageBar.WARNING
+                                            level=QgsMessageBar.WARNING
                                             )
 
     def log_warning(self, message):
         """ Log a warning message """
         QgsMessageLog.logMessage(self.PLUGIN_NAME + ": " + message)
-
 
     ##################################################################
     #
@@ -113,29 +115,30 @@ class color_attribute:
     def start_progress_bar(self, maxval, message):
         """ Create a progress bar into the messagebar """
         self.progress = QProgressBar()
-        self.progress.setAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+        self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
         progressMessageBar = self.iface.messageBar().createMessage(message)
         self.progress.setMaximum(maxval)
         progressMessageBar.layout().addWidget(self.progress)
 
-        # TODO 
+        # TODO
         # Cancel button can't be pressed like this. so simply removing it.
         # Anyway the process is straightforward and should not take hours
 
-        #button = QPushButton()
-        #button.setText("Cancel")
-        #button.pressed.connect(self.cancel_progress_bar)
-        #progressMessageBar.layout().addWidget(button)
+        # button = QPushButton()
+        # button.setText("Cancel")
+        # button.pressed.connect(self.cancel_progress_bar)
+        # progressMessageBar.layout().addWidget(button)
 
-        self.iface.messageBar().pushWidget(progressMessageBar, self.iface.messageBar().INFO)
+        self.iface.messageBar().pushWidget(progressMessageBar,
+                                           self.iface.messageBar().INFO)
 
     def set_progress_value(self, value):
-        """ update a previously created progress bar. 
+        """ update a previously created progress bar.
             Ignore if there is no progress bar
         """
-        if self.progress == None:
-            return #TODO do something here?
+        if self.progress is None:
+            return  # TODO do something here?
         self.progress.setValue(value)
 
     def cancel_progress_bar(self):
@@ -150,18 +153,18 @@ class color_attribute:
     ##################################################################
 
     def check_and_create_attribute(self, layer, newattrtext):
-        """ 
-            Creates a new String attribute for the layer 
+        """
+            Creates a new String attribute for the layer
             Returns the new QgsField.
             Raises exceptions for any possible error
         """
         qgsfield = None
-        
+
         if not re.match("^[A-Za-z0-9_-]*$", newattrtext):
             raise InvalidAttributeName
-        if len(newattrtext)==0:
+        if len(newattrtext) == 0:
             raise EmptyAttributeName
-        
+
         # If it already exists, return the existing index
         layer_fields = layer.dataProvider().fields()
         existing_index = layer_fields.indexFromName(newattrtext)
@@ -171,8 +174,8 @@ class color_attribute:
 
         try:
             caps = layer.dataProvider().capabilities()
-            
-            if caps & QgsVectorDataProvider.AddAttributes: #Is that something good?
+
+            if caps & QgsVectorDataProvider.AddAttributes:  # Is that something good?
                 qgsfield = QgsField(newattrtext, QVariant.String)
                 layer.startEditing()
 
@@ -180,22 +183,22 @@ class color_attribute:
                 layer.reload()
 
                 layer.commitChanges()
-        
+
         except Exception as e:
             raise e
 
         return qgsfield
 
-    def fill_color_attribute_custom_renderer(self,renderer):
+    def fill_color_attribute_custom_renderer(self, renderer):
         """ Fill a color attribute when using a custom renderer """
         raise InvalidCustomRenderer
-        #reply = QMessageBox.information(self.dlg, 'Message',""
+        # reply = QMessageBox.information(self.dlg, 'Message',""
         #                               ("This layer uses a custom renderer."
         #                                " This is currently not supported by the plugin")
         #                                ,""
         #                               )
 
-    def fill_color_attribute_singlesymbol_renderer(self,renderer):
+    def fill_color_attribute_singlesymbol_renderer(self, renderer):
         """ Set the single color into each of the features """
         layer = self.layer
         attribute = self.attribute
@@ -206,7 +209,7 @@ class color_attribute:
         if attribute < 0:
             raise InternalPluginError
 
-        newattrs = { attribute : colorstr}
+        newattrs = {attribute: colorstr}
 
         layer.startEditing()
 
@@ -214,14 +217,14 @@ class color_attribute:
         step = 0
         for feat in iter:
             fid = feat.id()
-            provider.changeAttributeValues({ fid : newattrs })
-            
+            provider.changeAttributeValues({fid: newattrs})
+
             self.set_progress_value(step)
             step += 1
-        
+
         layer.commitChanges()
 
-    def fill_color_attribute_graduatedsymbol_renderer(self,renderer):
+    def fill_color_attribute_graduatedsymbol_renderer(self, renderer):
         """ Set the color with a graduated symbol renderer """
         layer = self.layer
         attribute = self.attribute
@@ -239,24 +242,24 @@ class color_attribute:
             fid = feat.id()
             attribute_map = feat.attributes()
             value = float(attribute_map[attrvalindex])
-            
+
             colorval = self.NOCOLOR
-            
+
             for r in renderer.ranges():
                 if value >= r.lowerValue() \
-                    and value <= r.upperValue() \
-                    and colorval == self.NOCOLOR:
+                   and value <= r.upperValue() \
+                   and colorval == self.NOCOLOR:
                         colorval = r.symbol().color().name()
 
-            newattrs = { attribute : colorval}
-            provider.changeAttributeValues({ fid : newattrs })
+            newattrs = {attribute: colorval}
+            provider.changeAttributeValues({fid: newattrs})
 
             self.set_progress_value(step)
             step += 1
 
         layer.commitChanges()
 
-    def fill_color_attribute_categorizedsymbol_renderer(self,renderer):
+    def fill_color_attribute_categorizedsymbol_renderer(self, renderer):
         """ Set the color with a categorized symbol renderer """
         layer = self.layer
         attribute = self.attribute
@@ -275,18 +278,18 @@ class color_attribute:
             attribute_map = feat.attributes()
 
             catindex = renderer.categoryIndexForValue(attribute_map[attrvalindex])
-            
-            if catindex != -1: 
+
+            if catindex != -1:
                 colorval = categories[catindex].symbol().color().name()
-            else: 
+            else:
                 colorval = self.NOCOLOR
 
-            newattrs = { attribute : colorval}
-            provider.changeAttributeValues({ fid : newattrs })
-            
+            newattrs = {attribute: colorval}
+            provider.changeAttributeValues({fid: newattrs})
+
             self.set_progress_value(step)
             step += 1
-        
+
         layer.commitChanges()
 
     def fill_color_attribute_rendererV2(self):
@@ -305,7 +308,7 @@ class color_attribute:
 
     def fill_color_attribute(self):
         layer = self.layer
-        
+
         self.renderer = layer.rendererV2()
         self.fill_color_attribute_rendererV2()
 
@@ -315,71 +318,70 @@ class color_attribute:
     #
     ##################################################################
 
-    def on_layerCombo_currentIndexChanged(self,g):
+    def on_layerCombo_currentIndexChanged(self, g):
         """ Fill the attributes combo box with the current layer attributes """
         layercombobox = self.dlg.ui.layerBox
         attributesbox = self.dlg.ui.colorBox
         selected_layer = layercombobox.itemData(layercombobox.currentIndex())
-        
-        if selected_layer == None: return
+
+        if selected_layer is None:
+            return
         attributesbox.clear()
 
         provider = selected_layer.dataProvider()
         columns = provider.fields()
-        
-        attributesbox.addItem("New Attribute",None)
+
+        attributesbox.addItem("New Attribute", None)
         attributesbox.insertSeparator(1000)
         for qgsfield in columns:
-            attributesbox.addItem(qgsfield.name(),qgsfield)
-
+            attributesbox.addItem(qgsfield.name(), qgsfield)
 
     def run(self):
         """ Main method """
         try:
             layercombobox = self.dlg.ui.layerBox
             attributesbox = self.dlg.ui.colorBox
-    
+
             layercombobox.clear()
             attributesbox.clear()
-    
-            #Fill the combo box
+
+            # Fill the combo box
             for layer in self.iface.legendInterface().layers():
                 if layer.type() == QgsMapLayer.VectorLayer:
-                    layercombobox.addItem(layer.name(),layer)
-    
+                    layercombobox.addItem(layer.name(), layer)
+
             # show the dialog
             self.dlg.show()
             # Run the dialog event loop
             result = self.dlg.exec_()
-            
+
             if result == 1:
                 selected_layer = layercombobox.itemData(layercombobox.currentIndex())
                 self.layer = selected_layer
                 self.layer.setReadOnly(False)
-                
+
                 if self.dlg.isNewAttribute():
                     newattname = self.dlg.getAttributeText()
-                    selected_attribute = self.check_and_create_attribute(self.layer,newattname)
-                    
+                    selected_attribute = self.check_and_create_attribute(self.layer, newattname)
+
                     if selected_attribute < 0:
-                        reply = QMessageBox.critical(self.dlg, 'Error',""
-                                                    "Problem adding new attribute",""
-                                                    ) 
+                        reply = QMessageBox.critical(self.dlg, 'Error', ""
+                                                     "Problem adding new attribute", "")
                         return
                 else:
                     selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
 
                 if selected_attribute.type() != QVariant.String:
                     raise InvalidAttributeType
-                
+
                 self.attribute = self.layer.dataProvider().fields().indexFromName(selected_attribute.name())
                 self.start_progress_bar(self.layer.featureCount(), "Color To Attribute")
                 self.fill_color_attribute()
 
-                self.iface.messageBar().clearWidgets() #Do not let the bar stay there
+                self.iface.messageBar().clearWidgets()  # Do not let the bar stay there
 
         except ColorAttributeException as cae:
-            self.iface.messageBar().clearWidgets() #Remove progress before pushing Message
-            self.iface.messageBar().pushMessage(cae.title, 
+            self.iface.messageBar().clearWidgets()  # Remove progress before pushing Message
+            self.iface.messageBar().pushMessage(cae.title,
                                                 cae.msg,
                                                 level=cae.level)
