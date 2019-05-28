@@ -23,20 +23,26 @@
 """
 import re
 
-from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication, QObject, Qt, QVariant)
+from qgis.PyQt.QtCore import (QSettings, QTranslator, qVersion, QCoreApplication,
+                              Qt, QVariant)
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import (QWidget, QProgressBar,
-    QPushButton, QApplication, QAction)
+from qgis.PyQt.QtWidgets import (QProgressBar, QAction)
 
 # Initialize Qt resources from file resources.py
 from .resources import *
 # Import the code for the dialog
 from .color_attribute_dialog import color_attributeDialog
-from .color_attribute_exceptions import *
+from .color_attribute_exceptions import (InvalidAttributeName, EmptyAttributeName,
+                                         InternalPluginError, ROLayer,
+                                         UnimplementedRenderer, NoLayerSelected,
+                                         InvalidAttributeType, CommitFailed,
+                                         ColorAttributeException)
 import os.path
 
-from qgis.core import (QgsProject, Qgis, QgsMessageLog, QgsVectorDataProvider, QgsField, QgsFeature,
-                       QgsSingleSymbolRenderer, QgsCategorizedSymbolRenderer, QgsGraduatedSymbolRenderer)
+from qgis.core import (QgsProject, Qgis, QgsMessageLog, QgsVectorDataProvider,
+                       QgsField, QgsFeature, QgsSingleSymbolRenderer,
+                       QgsCategorizedSymbolRenderer, QgsGraduatedSymbolRenderer)
+
 
 class color_attribute:
     """QGIS Plugin Implementation."""
@@ -94,18 +100,16 @@ class color_attribute:
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('color_attribute', message)
 
-
-    def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        status_tip=None,
-        whats_this=None,
-        parent=None):
+    def add_action(self,
+                   icon_path,
+                   text,
+                   callback,
+                   enabled_flag=True,
+                   add_to_menu=True,
+                   add_to_toolbar=True,
+                   status_tip=None,
+                   whats_this=None,
+                   parent=None):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -182,7 +186,6 @@ class color_attribute:
         # will be set False in run()
         self.first_start = True
 
-
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
@@ -197,12 +200,13 @@ class color_attribute:
     #
     ##################################################################
 
-    def start_progress_bar(self, maxval, message):
+    def start_progress_bar(self, message, maxval):
         """ Create a progress bar into the messagebar """
+        progressMessageBar = self.iface.messageBar().createMessage(message)
+
         self.progress = QProgressBar()
         self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        progressMessageBar = self.iface.messageBar().createMessage(message)
         self.progress.setMaximum(maxval)
         progressMessageBar.layout().addWidget(self.progress)
 
@@ -222,7 +226,6 @@ class color_attribute:
         self.progress_cancelled = True
         raise InvalidAttributeName
 
-
     def load_combobox_layers(self):
         """ Loads the combobox with existing layers """
 
@@ -239,11 +242,15 @@ class color_attribute:
         layercombobox = self.dlg.layer_combobox
         attributesbox = self.dlg.attribute_combobox
 
-        selected_layer = layercombobox.itemData(layercombobox.currentIndex()).layer()
+        selected_item = layercombobox.itemData(layercombobox.currentIndex())
+
+        if not selected_item:
+            return
+        else:
+            selected_layer = layercombobox.itemData(layercombobox.currentIndex()).layer()
 
         if selected_layer is None:
-            #Maybe add an error message here
-            return
+            raise InternalPluginError
 
         attributesbox.clear()
 
@@ -281,24 +288,21 @@ class color_attribute:
         layer_fields = layer.fields()
         existing_index = layer_fields.indexFromName(newattrtext)
         if existing_index != -1:
-            QgsMessageLog.logMessage("Using existing field. It will be overwritten",
-                                     'color_attribute', level=Qgis.Warning)
+            QgsMessageLog.logMessage(
+                    "Using existing field. It will be overwritten",
+                    'color_attribute', level=Qgis.Warning)
             return layer_fields[existing_index]
 
         try:
+            QgsMessageLog.logMessage('Creating New attribute {}'.format(newattrtext), 'color_attribute', level=Qgis.Info)
             caps = layer.dataProvider().capabilities()
 
-            QgsMessageLog.logMessage(str(caps), 'color_attribute', level=Qgis.Info)
-
-            if caps & QgsVectorDataProvider.AddAttributes:  # Is that something good?
+            if caps & QgsVectorDataProvider.AddAttributes:
                 qgsfield = QgsField(newattrtext, QVariant.String)
                 layer.setReadOnly(False)
 
-
                 layer.dataProvider().addAttributes([qgsfield])
                 layer.reload()
-
-                #layer.commitChanges()
 
         except Exception as e:
             raise e
@@ -314,12 +318,12 @@ class color_attribute:
         renderer = layer.renderer()
         colorstr = str(renderer.symbol().color().name())
         provider = layer.dataProvider()
-        attribute_index = layer.dataProvider().fields().indexFromName(attribute.name())
+        attr_idx = layer.dataProvider().fields().indexFromName(attribute.name())
 
-        if attribute_index < 0:
+        if attr_idx < 0:
             raise InternalPluginError
 
-        newattrs = {attribute_index: colorstr}
+        newattrs = {attr_idx: colorstr}
 
         step = 0
         for feat in layer.getFeatures():
@@ -329,17 +333,17 @@ class color_attribute:
             self.set_progress_value(step)
             step += 1
 
-        #layer.commitChanges()
-
-    def fill_color_attribute_categorizedsymbol_renderer(self, layer, attribute):
+    def fill_color_attribute_categorizedsymbol_renderer(self,
+                                                        layer,
+                                                        attribute):
         """ Set the color with a categorized symbol renderer """
         renderer = layer.renderer()
         provider = layer.dataProvider()
-        attribute_index = layer.dataProvider().fields().indexFromName(attribute.name())
+        attr_idx = layer.dataProvider().fields().indexFromName(attribute.name())
         attrvalindex = provider.fieldNameIndex(renderer.classAttribute())
         categories = renderer.categories()
 
-        if attribute_index < 0:
+        if attr_idx < 0:
             raise InternalPluginError
 
         step = 0
@@ -354,13 +358,11 @@ class color_attribute:
             else:
                 colorval = self.NOCOLOR
 
-            newattrs = {attribute_index: colorval}
+            newattrs = {attr_idx: colorval}
             provider.changeAttributeValues({fid: newattrs})
 
             self.set_progress_value(step)
             step += 1
-
-        #layer.commitChanges()
 
     def fill_color_attribute_graduatedsymbol_renderer(self, layer, attribute):
         """ Set the color with a graduated symbol renderer """
@@ -394,14 +396,14 @@ class color_attribute:
             self.set_progress_value(step)
             step += 1
 
-        #layer.commitChanges()
-
     def fill_color_attribute(self, layer, attribute):
-        """ Fill the color attribute using the proper QgsVectorDataProvider renderer """
+        """
+            fill the color attribute using the proper
+            QgsVectorDataProvider renderer
+        """
 
         renderer = layer.renderer()
         rtype = type(renderer)
-
 
         if rtype == QgsSingleSymbolRenderer:
             self.fill_color_attribute_singlesymbol_renderer(layer, attribute)
@@ -417,26 +419,26 @@ class color_attribute:
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        if self.first_start == True:
+        if self.first_start:
             self.first_start = False
             self.dlg = color_attributeDialog()
 
-        self.dlg.layer_combobox.currentIndexChanged.connect(self.on_layer_combobox_currentIndexChanged)
-        self.dlg.attribute_combobox.currentIndexChanged.connect(self.on_attribute_combobox_currentIndexChanged)
+        self.dlg.layer_combobox.currentIndexChanged.connect(
+                self.on_layer_combobox_currentIndexChanged)
+        self.dlg.attribute_combobox.currentIndexChanged.connect(
+                self.on_attribute_combobox_currentIndexChanged)
 
         self.load_combobox_layers()
 
         layercombobox = self.dlg.layer_combobox
         attributesbox = self.dlg.attribute_combobox
 
-
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
         if not result:
-            return # ok was not pressed
-
+            return  # ok was not pressed
 
         try:
             selected_layer = layercombobox.itemData(layercombobox.currentIndex()).layer()
@@ -454,7 +456,6 @@ class color_attribute:
             if self.new_attribute:
                 new_attr_name = self.dlg.lineEdit.text()
 
-                #self.iface.messageBar().pushMessage(new_attr_name) #TODO delete
                 QgsMessageLog.logMessage("New Attribute", 'color_attribute', level=Qgis.Info)
                 selected_attribute = self.check_and_create_attribute(selected_layer, new_attr_name)
 
@@ -463,16 +464,15 @@ class color_attribute:
                     self.iface.messageBar().pushMessage("Could not create new attribute on : ",
                                                         selected_layer.name(),
                                                         level=Qgis.Critical)
+                    return
+
             else:
-                # TODO pending test
                 selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
 
             if selected_attribute.type() != QVariant.String:
                 raise InvalidAttributeType
 
-            #attribute = self.layer.dataProvider().fields().indexFromName(selected_attribute.name())
-
-            self.start_progress_bar(selected_layer.featureCount(), "Color To Attribute")
+            self.start_progress_bar("Color To Attribute", selected_layer.featureCount())
 
             try:
                 self.fill_color_attribute(selected_layer, selected_attribute)
@@ -483,7 +483,11 @@ class color_attribute:
             if not success:
                 raise CommitFailed
 
+            self.iface.messageBar().pushMessage(
+                    'Filled attribute {} in Layer {} '.format(selected_attribute.name(), selected_layer.name()),
+                    Qgis.Success)
+
         except ColorAttributeException as exc:
-            selected_layer.rollBack() # Cancel any changes made
+            selected_layer.rollBack()  # Cancel any changes made
 
             self.iface.messageBar().pushMessage(exc.msg, exc.level)
