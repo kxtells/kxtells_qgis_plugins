@@ -1,11 +1,32 @@
-Color to layer Plugin
----------------------
+Plugin Builder Results
 
-This plugin is a small plugin with a single option. Save the current layer
-defined colors to an existing (or new) layer attribute.
+Your plugin color_attribute was created in:
+    /home/jordi/REPOS/kxtells_qgis_plugins/color_attribute_3/color_attribute
 
-The plugin adds a new icon to the plugin bar. It gives access to a minimal
-GUI that lets you choose a layer and an attribute to hold the color.
+Your QGIS plugin directory is located at:
+    /home/jordi/.local/share/QGIS/QGIS3/profiles/default/python/plugins
 
-A third option will let you define a 10 character name for a new attribute
-to be created and populated.
+What's Next:
+
+  * Copy the entire directory containing your new plugin to the QGIS plugin
+    directory
+
+  * Compile the resources file using pyrcc5
+
+  * Run the tests (``make test``)
+
+  * Test the plugin by enabling it in the QGIS plugin manager
+
+  * Customize it by editing the implementation file: ``color_attribute.py``
+
+  * Create your own custom icon, replacing the default icon.png
+
+  * Modify your user interface by opening color_attribute_dialog_base.ui in Qt Designer
+
+  * You can use the Makefile to compile your Ui and resource files when
+    you make changes. This requires GNU make (gmake)
+
+For more information, see the PyQGIS Developer Cookbook at:
+http://www.qgis.org/pyqgis-cookbook/index.html
+
+(C) 2011-2018 GeoApt LLC - geoapt.com

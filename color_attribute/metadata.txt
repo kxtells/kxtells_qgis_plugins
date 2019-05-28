@@ -1,42 +1,44 @@
-# This file contains metadata for your plugin. Beginning
-# with version 1.8 this is the preferred way to supply information about a
-# plugin. The current method of embedding metadata in __init__.py will
-# be supported until version 2.0
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
 
-# This file should be included when you package your plugin.
-
-# Mandatory items:
-
+# This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Color to Attribute
-qgisMinimumVersion=2.0
-description=Create a new colum in a layer holding each feature color
-about=Create a new colum in a layer holding each feature color.
-    Using a simple dialog, choose a layer and an existing or new
-    string/Text attribute that will store colors in the common
-    hexadecimal format.
-    
-version=0.1
+name=Color To Attribute
+qgisMinimumVersion=3.0
+description=Create a new colum in a layer holding each feature color.
+version=0.2
 author=Jordi Castells
 email=jordi.kstells@gmail.com
 
-# end of mandatory metadata
+about=Create a new colum in a layer holding each feature color.
+    Using a simple dialog, choose a layer and an existing or new
+    string/Text attribute that will store colors in the common
+    hexadecimal format. Works with Single Symbol, Categorized and
+    Graduated renderers
 
-# Optional items:
 
-# Uncomment the following line and add your changelog entries:
+tracker=https://github.com/kxtells/kxtells_qgis_plugins/issues
+repository=https://github.com/kxtells/kxtells_qgis_plugins/
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
 # changelog=
 
-# tags are comma separated with spaces allowed
+# Tags are comma separated with spaces allowed
 tags=vector,color
 
 homepage=https://jcastellssala.com/2012/06/27/qgis-color-to-layer-attribute/
-tracker=
-repository=https://github.com/kxtells/kxtells_qgis_plugins/tree/qgis2.2
+category=Plugins
 icon=icon.png
-
 # experimental flag
 experimental=False
-# deprecated flag (applies to the whole plugin, not just a single version
+
+# deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
+
