@@ -41,7 +41,9 @@ import os.path
 
 from qgis.core import (QgsProject, Qgis, QgsMessageLog, QgsVectorDataProvider,
                        QgsField, QgsFeature, QgsSingleSymbolRenderer,
-                       QgsCategorizedSymbolRenderer, QgsGraduatedSymbolRenderer)
+                       QgsCategorizedSymbolRenderer, QgsGraduatedSymbolRenderer,
+                       QgsMapLayer
+                       )
 
 
 class color_attribute:
@@ -230,12 +232,13 @@ class color_attribute:
         """ Loads the combobox with existing layers """
 
         # Fetch the currently loaded layers
-        layers = QgsProject.instance().layerTreeRoot().children()
+        layers_map = QgsProject.instance().mapLayers()
         # Clear the contents of the comboBox from previous runs
         self.dlg.layer_combobox.clear()
         # Populate the comboBox with names of all the loaded layers
-        for layer in layers:
-            self.dlg.layer_combobox.addItem(layer.name(), layer)
+        for layer in sorted(layers_map.values(), key=lambda x: x.name()):
+            if layer.type() == QgsMapLayer.VectorLayer:
+                self.dlg.layer_combobox.addItem(layer.name(), layer)
 
     def on_layer_combobox_currentIndexChanged(self, g):
         """ Fill the attributes combo box with the current layer attributes """
@@ -247,14 +250,14 @@ class color_attribute:
         if not selected_item:
             return
         else:
-            selected_layer = layercombobox.itemData(layercombobox.currentIndex()).layer()
+            selected_layer = layercombobox.itemData(layercombobox.currentIndex())
 
         if selected_layer is None:
             raise InternalPluginError
 
         attributesbox.clear()
 
-        attributesbox.addItem("New Attribute", None)
+        attributesbox.addItem("Create New Attribute", None)
         attributesbox.insertSeparator(1000)
         for field in selected_layer.fields():
             attributesbox.addItem(field.name(), field)
@@ -433,6 +436,7 @@ class color_attribute:
         layercombobox = self.dlg.layer_combobox
         attributesbox = self.dlg.attribute_combobox
 
+
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
@@ -441,7 +445,7 @@ class color_attribute:
             return  # ok was not pressed
 
         try:
-            selected_layer = layercombobox.itemData(layercombobox.currentIndex()).layer()
+            selected_layer = layercombobox.itemData(layercombobox.currentIndex())
             selected_attribute = attributesbox.itemData(attributesbox.currentIndex())
 
             if selected_layer is None:
