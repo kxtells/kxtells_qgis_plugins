@@ -10,7 +10,7 @@
 name=Color to Attribute
 qgisMinimumVersion=3.0
 description=Create a new colum in a layer holding each feature color.
-version=0.2
+version=0.2.1
 author=Jordi Castells
 email=jordi.kstells@gmail.com
 
