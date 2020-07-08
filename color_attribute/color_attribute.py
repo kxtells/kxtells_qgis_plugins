@@ -42,6 +42,7 @@ import os.path
 from qgis.core import (QgsProject, Qgis, QgsMessageLog, QgsVectorDataProvider,
                        QgsField, QgsFeature, QgsSingleSymbolRenderer,
                        QgsCategorizedSymbolRenderer, QgsGraduatedSymbolRenderer,
+                       QgsRuleBasedRenderer, QgsRenderContext,
                        QgsMapLayer
                        )
 
@@ -399,6 +400,38 @@ class color_attribute:
             self.set_progress_value(step)
             step += 1
 
+    def fill_color_attribute_rulebased_renderer(self, layer, attribute):
+        try:
+            context = QgsRenderContext() # just a base context
+
+            renderer = layer.renderer()
+            provider = layer.dataProvider()
+            attr_idx = layer.dataProvider().fields().indexFromName(attribute.name())
+
+            renderer.startRender(context, layer.fields())
+
+            step = 0
+            for feat in layer.getFeatures():
+                fid = feat.id()
+
+                symbols = renderer.symbolsForFeature(feat, context)
+                if not symbols:
+                    colorval = self.NOCOLOR
+                    QgsMessageLog.logMessage("No symbols found for feature %s" % fid,
+                                             'color_attribute', level=Qgis.Warning)
+                else:
+                    colorval = symbols[0].color().name()
+
+                newattrs = {attr_idx: colorval}
+                provider.changeAttributeValues({fid: newattrs})
+
+                self.set_progress_value(step)
+                step += 1
+
+
+        finally:
+            renderer.stopRender(context)
+
     def fill_color_attribute(self, layer, attribute):
         """
             fill the color attribute using the proper
@@ -414,6 +447,8 @@ class color_attribute:
             self.fill_color_attribute_categorizedsymbol_renderer(layer, attribute)
         elif rtype == QgsGraduatedSymbolRenderer:
             self.fill_color_attribute_graduatedsymbol_renderer(layer, attribute)
+        elif rtype == QgsRuleBasedRenderer:
+            self.fill_color_attribute_rulebased_renderer(layer, attribute)
         else:
             raise UnimplementedRenderer(renderer.__class__.__name__)
 
