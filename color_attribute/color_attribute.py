@@ -452,7 +452,7 @@ class color_attribute:
                 # TODO error message here
                 raise NoLayerSelected
 
-            can_edit = selected_layer.startEditing()
+            can_edit = selected_layer.startEditing() or selected_layer.isEditable()
             if not can_edit:
                 raise ROLayer
 
